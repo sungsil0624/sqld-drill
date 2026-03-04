@@ -1,4 +1,3 @@
-// app/page.tsx (클라이언트 컴포넌트로 변경하거나 컴포넌트 분리)
 'use client'
 import { useState, useEffect } from 'react'
 import Navbar from '@/components/Navbar'
@@ -8,18 +7,37 @@ import { Card } from '@/components/ui/card'
 import { Play, BookOpen, Target } from 'lucide-react'
 import { db } from '@/lib/db'
 
+// 1. 질문 데이터의 타입을 정의합니다.
+interface Question {
+  id: number;
+  question: string;
+  options: string[]; // JSONB는 배열로 가져와집니다.
+  answer_index: number;
+  explanation: string;
+  code_block?: string;
+}
+
 export default function Page() {
   const [started, setStarted] = useState(false)
-  const [questions, setQuestions] = useState([])
+  
+  // 2. useState에 타입 제네릭(<Question[]>)을 추가하여 never[] 에러를 방지합니다.
+  const [questions, setQuestions] = useState<Question[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     async function loadData() {
-      const data = await db.getQuestions()
-      // 질문 데이터 셔플 (랜덤 정렬)
-      const shuffled = [...data].sort(() => Math.random() - 0.5)
-      setQuestions(shuffled)
-      setLoading(false)
+      try {
+        const data = await db.getQuestions()
+        // 3. 데이터가 있을 때만 셔플을 진행합니다.
+        if (data) {
+          const shuffled = [...data].sort(() => Math.random() - 0.5)
+          setQuestions(shuffled)
+        }
+      } catch (error) {
+        console.error("데이터 로딩 실패:", error)
+      } finally {
+        setLoading(false)
+      }
     }
     loadData()
   }, [])
@@ -48,7 +66,7 @@ export default function Page() {
             size="lg" 
             className="w-full h-16 text-xl font-bold bg-blue-600 hover:bg-blue-700 shadow-xl shadow-blue-200 transition-all hover:-translate-y-1"
             onClick={() => setStarted(true)}
-            disabled={loading}
+            disabled={loading || questions.length === 0} // 문제가 없으면 시작 방지
           >
             {loading ? "데이터 로딩 중..." : "드릴 시작하기"}
           </Button>
@@ -69,7 +87,8 @@ export default function Page() {
   )
 }
 
-function FeatureCard({ icon, title, desc }: { icon: any, title: string, desc: string }) {
+// 4. FeatureCard 컴포넌트의 icon 타입도 구체화했습니다.
+function FeatureCard({ icon, title, desc }: { icon: React.ReactNode, title: string, desc: string }) {
   return (
     <Card className="p-4 bg-white/50 backdrop-blur-sm border-none shadow-sm space-y-1">
       <div className="mb-2">{icon}</div>
