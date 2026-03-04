@@ -27,7 +27,6 @@ export default function Page() {
   useEffect(() => {
     async function loadData() {
       try {
-        
         const data = await db.getQuestions()
         // 3. 데이터가 있을 때만 셔플을 진행합니다.
         if (data) {
